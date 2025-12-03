@@ -1,0 +1,45 @@
+---
+title: "STAT 400 | Group 4 | Monte Carlo Simulation: CIED Longevity" 
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+library(tidyverse)     
+library(knitr)         
+library(kableExtra)    
+
+set.seed(400) 
+
+```
+
+## Project Overview
+
+### Introduction
+
+This project replicates and extends the Monte Carlo simulation from Defaye et al. (2025) on Cardiac Implantable Electronic Device (CIED) longevity. The original study introduced a Power Consumption Index (PCI) model to standardize battery life predictions across different pacemaker models and manufacturers.
+
+### Research Goals
+1. Replicate the PCI model and Monte Carlo simulation methodology
+
+2. Extend the model by incorporating greater physiological variability in lead impedance
+
+3. Compare device longevity predictions under base and extended scenarios
+
+### Power Consumption Index Model
+
+**Model Definition**
+
+The core PCI model from the original study is defined as:
+
+**PCI** = t × I / C
+
+Where:
+
+**t** = Time in minutes
+
+**I** = Total current drain (µA)
+
+**C** = Battery capacity (Ah)
+
+
