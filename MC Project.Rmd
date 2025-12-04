@@ -168,15 +168,60 @@ sim_extended <- sim_data %>%
 
 #### 4) Summarize longevity distributions (table)
 
+```{r}
+
+results <- bind_rows(
+  select(sim_base, id, condition, long_years, scenario),
+  select(sim_extended, id, condition, long_years, scenario)
+)
+
+# Summary table
+summary_tbl <- results %>%
+  group_by(scenario) %>%
+  summarise(
+    mean_years = mean(long_years),
+    median_years = median(long_years),
+    sd_years = sd(long_years),
+    q1 = quantile(long_years, 0.25),
+    q3 = quantile(long_years, 0.75),
+    n = n()
+  )
+
+kable(summary_tbl, digits = 2)
 
 
+
+```
 
 #### 5) Statistical test (t-test) to confirm significance
 
+```{r}
+t_test <- t.test(
+  filter(results, scenario == "Base (SD=0Ω)")$long_years,
+  filter(results, scenario == "Extended (SD=100Ω)")$long_years
+)
+
+print(t_test)
+
+```
 
 
 #### 6) Plot longevity distributions 
 
+```{r}
+
+ggplot(results, aes(x = long_years, fill = scenario)) +
+  geom_density(alpha = 0.4) +
+  labs(
+    title = "CIED Longevity: Base vs Extended Impedance Variability",
+    subtitle = paste("Base: fixed 500Ω | Extended: N(500, 100)Ω | n =", n_patients),
+    x = "Longevity (years)",
+    y = "Density",
+    fill = "Scenario"
+  ) +
+  theme_minimal()
+
+```
 
 
 ### DISCUSSION  
