@@ -57,7 +57,7 @@ To recreate the Monte Carlo simulation from the study by generating a large grou
 ```{r}
 
 #Pacing Current Function
-p_currect <- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
+p_current <- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
   pw_sec <- pw_ms / 1000
   i_pulse <- v / r_ohm
   q <- i_pulse * pw_sec
@@ -68,7 +68,7 @@ p_currect <- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
 }
 
 #PCI + Longevity Function
-long <- function(i_packground, i_pacing, i_options, c_mah){
+long <- function(i_background, i_pacing, i_options, c_mah){
   c_uah <- c_mah * 1e3
   i_total <- i_background + i_pacing + i_options
   
@@ -89,9 +89,94 @@ long <- function(i_packground, i_pacing, i_options, c_mah){
 
 ### MC SIMULATION
 
+#### 1) Simulation
+
 ```{r}
+set.seed(400)
+n_patients <- 100000
+
+# Patient condition (indication)
+condition <- sample(c("SND", "AVB"), n_patients, replace = TRUE, prob = c(0.6, 0.4))
+hr <- pmin(pmax(rnorm(n_patients, 60, 5), 40), 90)
+
+# Pacing percentages (as fractions 0-1)
+ventricular_pacing <- ifelse(condition == "SND",
+                            rnorm(n_patients, 0.29, 0.08),   # 29% ± 8% for SND
+                            rnorm(n_patients, 0.90, 0.05))   # 90% ± 5% for AVB
+ventricular_pacing <- pmin(pmax(ventricular_pacing, 0), 1)  # Clamp to 0-1
+
+# Device parameters
+c_mah <- pmax(rnorm(n_patients, 1000, 80), 800)        # Battery capacity
+i_background <- pmax(rnorm(n_patients, 6.5, 0.7), 4)   # Background current
+
+# Options current 
+i_options <- rep(0, n_patients)  # Set to 0 to simplify
+
+# Create patient data
+sim_data <- tibble(
+  id = 1:n_patients,
+  condition,
+  hr,
+  ventricular_pacing,
+  c_mah,
+  i_background,
+  i_options
+)
+
 
 ```
+
+
+#### 2) Base scenario (fixed impedance = 500Ω)
+
+
+```{r}
+
+sim_base <- sim_data %>%
+  mutate(
+    impedance = 500,
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    
+    scenario = "Base (SD=0Ω)"
+  )
+
+```
+
+
+#### 3) Extended scenario (variable lead impedance)
+
+
+```{r}
+
+sim_extended <- sim_data %>%
+  mutate(
+    impedance = pmax(rnorm(n_patients, 500, 100), 200),
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    
+    scenario = "Extended (SD=100Ω)"
+  )
+
+```
+
+#### 4) Summarize longevity distributions (table)
+
+
+
+
+#### 5) Statistical test (t-test) to confirm significance
+
+
+
+#### 6) Plot longevity distributions 
+
 
 
 ### DISCUSSION  

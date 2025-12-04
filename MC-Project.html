@@ -408,7 +408,7 @@ each device and compute the PCI with the given information.</p>
 <div id="pci-model" class="section level3">
 <h3>PCI MODEL</h3>
 <pre class="r"><code>#Pacing Current Function
-p_currect &lt;- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
+p_current &lt;- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
   pw_sec &lt;- pw_ms / 1000
   i_pulse &lt;- v / r_ohm
   q &lt;- i_pulse * pw_sec
@@ -419,7 +419,7 @@ p_currect &lt;- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
 }
 
 #PCI + Longevity Function
-long &lt;- function(i_packground, i_pacing, i_options, c_mah){
+long &lt;- function(i_background, i_pacing, i_options, c_mah){
   c_uah &lt;- c_mah * 1e3
   i_total &lt;- i_background + i_pacing + i_options
   
@@ -436,6 +436,76 @@ long &lt;- function(i_packground, i_pacing, i_options, c_mah){
 </div>
 <div id="mc-simulation" class="section level3">
 <h3>MC SIMULATION</h3>
+<div id="simulation" class="section level4">
+<h4>1) Simulation</h4>
+<pre class="r"><code>set.seed(400)
+n_patients &lt;- 100000
+
+# Patient condition (indication)
+condition &lt;- sample(c(&quot;SND&quot;, &quot;AVB&quot;), n_patients, replace = TRUE, prob = c(0.6, 0.4))
+hr &lt;- pmin(pmax(rnorm(n_patients, 60, 5), 40), 90)
+
+# Pacing percentages (as fractions 0-1)
+ventricular_pacing &lt;- ifelse(condition == &quot;SND&quot;,
+                            rnorm(n_patients, 0.29, 0.08),   # 29% ± 8% for SND
+                            rnorm(n_patients, 0.90, 0.05))   # 90% ± 5% for AVB
+ventricular_pacing &lt;- pmin(pmax(ventricular_pacing, 0), 1)  # Clamp to 0-1
+
+# Device parameters
+c_mah &lt;- pmax(rnorm(n_patients, 1000, 80), 800)        # Battery capacity
+i_background &lt;- pmax(rnorm(n_patients, 6.5, 0.7), 4)   # Background current
+
+# Options current 
+i_options &lt;- rep(0, n_patients)  # Set to 0 to simplify
+
+# Create patient data
+sim_data &lt;- tibble(
+  id = 1:n_patients,
+  condition,
+  hr,
+  ventricular_pacing,
+  c_mah,
+  i_background,
+  i_options
+)</code></pre>
+</div>
+<div id="base-scenario-fixed-impedance-500ω" class="section level4">
+<h4>2) Base scenario (fixed impedance = 500Ω)</h4>
+<pre class="r"><code>sim_base &lt;- sim_data %&gt;%
+  mutate(
+    impedance = 500,
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    
+    scenario = &quot;Base (SD=0Ω)&quot;
+  )</code></pre>
+</div>
+<div id="extended-scenario-variable-lead-impedance" class="section level4">
+<h4>3) Extended scenario (variable lead impedance)</h4>
+<pre class="r"><code>sim_extended &lt;- sim_data %&gt;%
+  mutate(
+    impedance = pmax(rnorm(n_patients, 500, 100), 200),
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    
+    scenario = &quot;Extended (SD=100Ω)&quot;
+  )</code></pre>
+</div>
+<div id="summarize-longevity-distributions-table" class="section level4">
+<h4>4) Summarize longevity distributions (table)</h4>
+</div>
+<div id="statistical-test-t-test-to-confirm-significance" class="section level4">
+<h4>5) Statistical test (t-test) to confirm significance</h4>
+</div>
+<div id="plot-longevity-distributions" class="section level4">
+<h4>6) Plot longevity distributions</h4>
+</div>
 </div>
 <div id="discussion" class="section level3">
 <h3>DISCUSSION</h3>
