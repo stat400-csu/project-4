@@ -1,6 +1,7 @@
 ---
-title: "STAT 400 | Group 4 | Monte Carlo Simulation: CIED Longevity" 
-output: html_document
+title: 'STAT 400 | Group 4 | Monte Carlo Simulation: CIED Longevity'
+output:
+  html_document: default
 ---
 
 
@@ -48,9 +49,24 @@ Where:
 
 **C** = Battery capacity (Ah)
 
-### Methods 
+### Methods: 
 
-To recreate the Monte Carlo simulation from the study by generating a large group of 100,000 simulated patients in R. Within each iteration, we can randomly sample patient parameters (Conditions, Atrial Pacing Percentage, and Ventricular Pacing Percentage) and device parameters (Ventricular lead parameters, Atrial lead parameters, and Left ventricular parameters). All of these inputs are used to estimate the pacing related current (I in model). We can include System parameters (background system current, sensor use, IEGM storage, and remote monitoring) as well for more accurate results. We can model these along with Battery Capacity as independent normally distributed variables. We can calculate the total device current by summing the current values for each device and compute the PCI with the given information.  
+**Core Goal:** Test impedance variability effect on PCI predictions
+
+**Simplified Patient Model:**
+- 100,000 virtual patients
+- Condition (SND/AVB), HR, ventricular pacing only
+- Battery, background current, lead impedance
+
+**Intentional Simplifications:**
+- Excluded atrial parameters to focus on ventricular pacing
+- Set optional features to zero for clarity
+- Used single impedance value (not manufacturer-specific)
+
+**Rationale:** Isolate effect of impedance variability while maintaining model essence
+
+**Comparison:** Base (500Ω fixed) vs Extended (N(500,100)Ω)
+
 
 ### PCI MODEL
 

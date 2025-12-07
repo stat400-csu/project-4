@@ -391,19 +391,20 @@ scenarios</p></li>
 <p><strong>C</strong> = Battery capacity (Ah)</p>
 </div>
 <div id="methods" class="section level3">
-<h3>Methods</h3>
-<p>To recreate the Monte Carlo simulation from the study by generating a
-large group of 100,000 simulated patients in R. Within each iteration,
-we can randomly sample patient parameters (Conditions, Atrial Pacing
-Percentage, and Ventricular Pacing Percentage) and device parameters
-(Ventricular lead parameters, Atrial lead parameters, and Left
-ventricular parameters). All of these inputs are used to estimate the
-pacing related current (I in model). We can include System parameters
-(background system current, sensor use, IEGM storage, and remote
-monitoring) as well for more accurate results. We can model these along
-with Battery Capacity as independent normally distributed variables. We
-can calculate the total device current by summing the current values for
-each device and compute the PCI with the given information.</p>
+<h3>Methods:</h3>
+<p><strong>Core Goal:</strong> Test impedance variability effect on PCI
+predictions</p>
+<p><strong>Simplified Patient Model:</strong> - 100,000 virtual patients
+- Condition (SND/AVB), HR, ventricular pacing only - Battery, background
+current, lead impedance</p>
+<p><strong>Intentional Simplifications:</strong> - Excluded atrial
+parameters to focus on ventricular pacing - Set optional features to
+zero for clarity - Used single impedance value (not
+manufacturer-specific)</p>
+<p><strong>Rationale:</strong> Isolate effect of impedance variability
+while maintaining model essence</p>
+<p><strong>Comparison:</strong> Base (500Ω fixed) vs Extended
+(N(500,100)Ω)</p>
 </div>
 <div id="pci-model" class="section level3">
 <h3>PCI MODEL</h3>
@@ -597,9 +598,67 @@ print(t_test)</code></pre>
 </div>
 <div id="discussion" class="section level3">
 <h3>DISCUSSION</h3>
+<p>The goal of our project was to recreate the central modeling approach
+described in Defaye et al. (2025), which introduced the Power
+Consumption Index (PCI) as a standardized way for comparing cardiac
+implantable electronic device longevity. The original study relied on
+detailed manufacturer-reported current drain data to build the model,
+followed by a large-scale Monte Carlo Simulation of 100,000 patients.
+For our recreation, we reproduced the key steps in the study by
+generating 100,000 virtual patients with randomized physiological and
+device parameters, including heart rate, pacing percentages, battery
+capacity, background current, and lead impedance. Using these inputs, we
+calculated pacing current, total device current, PCI, and predicted
+device longevity.</p>
+<p>Overall, we observed the following points that aligned with the
+original study:</p>
+<div id="the-background-current-dominates-the-total-power-consumption" class="section level4">
+<h4>1. The background current dominates the total power consumption</h4>
+<p>In our simulation, patients with low pacing percentages had longevity
+largely determined by background current. In the original study, the
+majority of the PCI is driven by the background current, so our
+recreation aligned with this.</p>
+</div>
+<div id="the-pacing-burden-substantially-influences-longevity" class="section level4">
+<h4>2. The pacing burden substantially influences longevity</h4>
+<p>Our simulation shows that higher ventricular pacing percentages had
+higher total current and lower projected longevity. This aligns with the
+original study, where pacing current was the second-largest contributor
+to power consumption.</p>
+</div>
+<div id="the-battery-capacity-alone-cannot-predict-longevity" class="section level4">
+<h4>3. The battery capacity alone cannot predict longevity</h4>
+<p>Devices with higher battery capacity generally exhibited longer
+simulated service life. However, total current from background and
+pacing influences longevity as well, so battery size alone does not
+fully determine expected device lifespan, which aligns with the original
+study’s findings.</p>
+</div>
+<div id="lead-impedance-variability-impacts-longevity" class="section level4">
+<h4>4. Lead impedance variability impacts longevity</h4>
+<p>When simulating variable lead impedance (Extended scenario), mean
+device longevity slightly decreased compared to the base scenario (fixed
+impedance). A t-test confirmed that the difference in mean longevity was
+statistically significant, demonstrating that lead characteristics can
+meaningfully affect outcomes in terms of longevity.</p>
+</div>
 </div>
 <div id="conclusion" class="section level3">
 <h3>CONCLUSION</h3>
+<p>Our Monte Carlo model successfully recreated key elements of the
+PCI-based longevity estimation introduced by Defaye et al. (2025).
+Despite using fewer device-specific parameters and a simplified
+representation of programming options, our simulated findings closely
+reflected the patterns reported in the original study. These findings
+reinforce the use of the PCI as a standardized and adaptable framework
+for understanding and comparing device life under varying patient and
+device conditions.</p>
+<p>The alignment of our simulation and the published results support the
+idea that even approximate PCI-based modeling can produce meaningful
+insights into device longevity. As in the original study, our results
+highlight meaningful practical implications. Even in a simplified form,
+our recreation demonstrates the impact and accuracy of the PCI model and
+shows the value it brings to real-world scenarios.</p>
 </div>
 </div>
 
