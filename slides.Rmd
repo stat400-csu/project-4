@@ -16,7 +16,7 @@ csu_gold  <- "#C8C372"
 
 # Demo dataset for plot
 set.seed(1)
-n_per_group <- 5000
+n_per_group <- 50000
 results <- data.frame(
   long_years = c(
     rnorm(n_per_group, mean = 15.33, sd = 2.31),
@@ -26,32 +26,39 @@ results <- data.frame(
 )
 ```
 
-## <span style="color:#1E4D2B;">Project Motivation & Clinical Importance</span>
+## <span style="color:#1E4D2B;">Motivation</span>
 
-* CIED batteries require surgical replacement.
-* Accurate longevity prediction improves clinical decision-making.
-* Longevity depends on pacing burden, heart rate, background/system current, and lead impedance.
-* Monte Carlo simulation evaluates how impedance variability affects battery life.
+* CIED (pacemaker) batteries require surgical replacement.
+
+* Longevity prediction helps avoid too-early or too-late replacement.
+
+* Lead impedance affects pacing current → may affect battery life.
+
+* We use a Monte Carlo simulation to test whether impedance variability changes predicted longevity.
+
 
 ## <span style="color:#1E4D2B;">Simulation Inputs</span>
 
-* 100,000 virtual patients simulated under realistic physiological conditions.
-* Variables include HR, pacing %, battery size, background current, impedance.
-* Impedance scenarios:
+* 100,000 simulated patients.
+
+* Variables included: heart rate, pacing %, battery capacity, background current, impedance.
+
+* Two impedance conditions:
 
   * **Base:** fixed at 500Ω
+
   * **Extended:** N(500Ω, SD = 100Ω)
-* Design isolates effect of impedance variability.
+
+* Purpose: isolate the effect of impedance variability.
 
 ## <span style="color:#1E4D2B;">Problem Statement & Methodology</span>
 
-* Does impedance variability meaningfully change predicted longevity?
-* Steps:
-
+* **Question:** Does impedance variability meaningfully change predicted longevity?
+* **Steps:**
   1. Implement PCI model.
-  2. Simulate device + physiology inputs.
-  3. Compute longevity for two impedance scenarios.
-  4. Compare distributions and means.
+  2. Simulate patient and device parameters.
+  3. Compute longevity under both impedance scenarios.
+  4. Compare means and distributions.
 
 ## <span style="color:#1E4D2B;">PCI Model: Concept Overview</span>
 
@@ -109,7 +116,6 @@ long <- function(i_background, i_pacing, i_options, c_mah){
 Welch Two Sample t-test
 
 t = 6.61
-df = 199878
 p-value = 3.76e-11
 
 95% CI: 0.049 to 0.090 years
@@ -149,9 +155,10 @@ ggplot(results, aes(x = long_years, fill = scenario)) +
 
 ## <span style="color:#1E4D2B;">Limitations & Future Work</span>
 
-* Static impedance; real devices show impedance drift.
-* Model excludes multi-lead systems and adaptive pacing algorithms.
-* Future work: dynamic impedance, manufacturer-specific models, clinical data validation.
+* Impedance treated as static (real devices drift).
+* Model excludes multi-lead systems and adaptive algorithms.
+* Could expand with dynamic impedance or clinical validation.
+
 
 ## <span style="color:#1E4D2B;">Conclusion</span>
 
