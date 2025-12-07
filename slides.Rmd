@@ -1,0 +1,165 @@
+---
+title: "<span style='color:#1E4D2B;'>Monte Carlo Simulation of CIED Longevity</span>"
+subtitle: "<span style='color:#C8C372;'>STAT 400: Computational Statistics — Colorado State University</span>"
+author: "Group 4: Sydney, James, Waddah"
+output:
+  ioslides_presentation:
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+
+# CSU brand colors
+csu_green <- "#1E4D2B"
+csu_gold  <- "#C8C372"
+
+# Demo dataset for plot
+set.seed(1)
+n_per_group <- 5000
+results <- data.frame(
+  long_years = c(
+    rnorm(n_per_group, mean = 15.33, sd = 2.31),
+    rnorm(n_per_group, mean = 15.26, sd = 2.37)
+  ),
+  scenario = factor(rep(c("Base (500Ω)", "Extended (500Ω ± 100Ω)"), each = n_per_group))
+)
+```
+
+## <span style="color:#1E4D2B;">Project Motivation & Clinical Importance</span>
+
+* CIED batteries require surgical replacement.
+* Accurate longevity prediction improves clinical decision-making.
+* Longevity depends on pacing burden, heart rate, background/system current, and lead impedance.
+* Monte Carlo simulation evaluates how impedance variability affects battery life.
+
+## <span style="color:#1E4D2B;">Simulation Inputs</span>
+
+* 100,000 virtual patients simulated under realistic physiological conditions.
+* Variables include HR, pacing %, battery size, background current, impedance.
+* Impedance scenarios:
+
+  * **Base:** fixed at 500Ω
+  * **Extended:** N(500Ω, SD = 100Ω)
+* Design isolates effect of impedance variability.
+
+## <span style="color:#1E4D2B;">Problem Statement & Methodology</span>
+
+* Does impedance variability meaningfully change predicted longevity?
+* Steps:
+
+  1. Implement PCI model.
+  2. Simulate device + physiology inputs.
+  3. Compute longevity for two impedance scenarios.
+  4. Compare distributions and means.
+
+## <span style="color:#1E4D2B;">PCI Model: Concept Overview</span>
+
+* PCI = electrical load relative to battery capacity.
+* Lower impedance → more current → shorter longevity.
+* Components:
+
+  * Pacing current
+  * Background/system current
+  * Optional features current
+
+## <span style="color:#1E4D2B;">PCI Model: Pacing Current Formula</span>
+
+```{r}
+p_current <- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
+  pw_sec  <- pw_ms / 1000
+  i_pulse <- v / r_ohm
+  q       <- i_pulse * pw_sec
+  q_micro <- q * 1e6
+  (q_micro * hr * pace_fraction) / 60
+}
+```
+
+## <span style="color:#1E4D2B;">PCI Model: Longevity Formula</span>
+
+```{r}
+long <- function(i_background, i_pacing, i_options, c_mah){
+  c_uah      <- c_mah * 1000
+  i_total    <- i_background + i_pacing + i_options
+  PCI        <- i_total / c_uah
+  long_hours <- 1 / PCI
+  long_hours / 8760
+}
+```
+
+## <span style="color:#1E4D2B;">Monte Carlo Framework</span>
+
+* Random HR, pacing %, battery, current, and impedance assigned to each simulated patient.
+* Longevity computed under Base and Extended impedance.
+* Distribution differences indicate sensitivity to impedance variability.
+
+## <span style="color:#1E4D2B;">Longevity Summary Table</span>
+
+| Scenario         | Mean  | Median | SD   | Q1    | Q3    | n       |
+| ---------------- | ----- | ------ | ---- | ----- | ----- | ------- |
+| Base (500Ω)      | 15.33 | 15.12  | 2.31 | 13.68 | 16.76 | 100,000 |
+| Extended (±100Ω) | 15.26 | 15.08  | 2.37 | 13.58 | 16.73 | 100,000 |
+
+* Longevity slightly lower under impedance variability.
+* Differences are small → model is robust.
+
+## <span style="color:#1E4D2B;">T-Test Results</span>
+
+```
+Welch Two Sample t-test
+
+t = 6.61
+df = 199878
+p-value = 3.76e-11
+
+95% CI: 0.049 to 0.090 years
+Mean(Base)     = 15.33
+Mean(Extended) = 15.26
+```
+
+* Statistically significant but small magnitude difference (~25 days).
+
+## <span style="color:#1E4D2B;">Longevity Distribution Plot</span>
+
+```{r, echo=FALSE}
+ggplot(results, aes(x = long_years, fill = scenario)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c(csu_green, csu_gold)) +
+  labs(
+    title = "CIED Longevity: Base vs Extended Impedance",
+    x = "Longevity (years)",
+    y = "Density",
+    fill = "Scenario"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(color = csu_green, face="bold"),
+    axis.title = element_text(color = csu_green)
+  )
+```
+
+* Strong overlap → impedance variability has small effect.
+* Extended scenario shifts slightly left → minor longevity reduction.
+
+## <span style="color:#1E4D2B;">Discussion</span>
+
+* Background/system current has strongest influence on longevity.
+* Impedance variability causes small, predictable changes.
+* Pacing burden + background current dominate longevity outcomes.
+
+## <span style="color:#1E4D2B;">Limitations & Future Work</span>
+
+* Static impedance; real devices show impedance drift.
+* Model excludes multi-lead systems and adaptive pacing algorithms.
+* Future work: dynamic impedance, manufacturer-specific models, clinical data validation.
+
+## <span style="color:#1E4D2B;">Conclusion</span>
+
+* Impedance variability slightly reduces longevity.
+* Predictions remain stable across realistic impedance ranges.
+* Monte Carlo simulation provides strong framework for CIED evaluation.
+
+## <span style="color:#1E4D2B;">Thank You</span>
+
+Questions?
+
