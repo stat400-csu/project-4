@@ -7,6 +7,7 @@ output:
   beamer_presentation: default
   ioslides_presentation:
     css: styles.css
+  slidy_presentation: default
 ---
 
 ```{r setup, include=FALSE}
@@ -73,11 +74,21 @@ results <- data.frame(
 ```{r}
 p_current <- function(v, pw_ms, r_ohm, hr = 60, 
                       pace_fraction = 0.3){
+  # Convert Pulse width to seconds
   pw_sec  <- pw_ms / 1000
+  
+  # Current during pulse
   i_pulse <- v / r_ohm
+  
+  # Charge per pulse in Coulombs
   q       <- i_pulse * pw_sec
+  
+  # Convert to microcoulombs
   q_micro <- q * 1e6
-  (q_micro * hr * pace_fraction) / 60
+  
+  # Average current over 1 minute
+  i_avg_microamps <- (q_micro * hr * pace_fraction)/60
+  return(i_avg_microamps)
 }
 ```
 
@@ -86,13 +97,22 @@ p_current <- function(v, pw_ms, r_ohm, hr = 60,
 ```{r}
 long <- function(i_background, i_pacing, 
                  i_options, c_mah){
+  # Convert battery capacity from mAh to µAh
   c_uah      <- c_mah * 1000
+  # Total current in µA
   i_total    <- i_background + i_pacing + 
     i_options
+  # Power Consumption Index (PCI)
   PCI        <- i_total / c_uah
+  # Longevity in hours
   long_hours <- 1 / PCI
+  # Longevity in years
   long_hours / 8760
-}
+  return(list(
+    i_total = i_total,
+    PCI = PCI,
+    years = long_years))
+  }
 ```
 
 ## Monte Carlo Framework (How We Tested) 
