@@ -94,11 +94,20 @@ long <- function(i_background, i_pacing, i_options, c_mah){
 }
 ```
 
-## <span style="color:#1E4D2B;">Monte Carlo Framework</span>
+## <span style="color:#1E4D2B;">Monte Carlo Framework (How We Tested) </span>
 
-* Random HR, pacing %, battery, current, and impedance assigned to each simulated patient.
-* Longevity computed under Base and Extended impedance.
-* Distribution differences indicate sensitivity to impedance variability.
+
+**For each of 100,000 patients:**
+
+1. Calculate longevity with perfect 500Ω impedance
+
+2. Calculate longevity with realistic variable impedance
+
+3. Compare the two results
+
+
+**This isolates** the effect of impedance variability by controlling for other patient differences
+
 
 ## <span style="color:#1E4D2B;">Longevity Summary Table</span>
 
@@ -106,6 +115,7 @@ long <- function(i_background, i_pacing, i_options, c_mah){
 | ---------------- | ----- | ------ | ---- | ----- | ----- | ------- |
 | Base (500Ω)      | 15.33 | 15.12  | 2.31 | 13.68 | 16.76 | 100,000 |
 | Extended (±100Ω) | 15.26 | 15.08  | 2.37 | 13.58 | 16.73 | 100,000 |
+
 
 * Longevity slightly lower under impedance variability.
 * Differences are small → model is robust.
@@ -123,11 +133,10 @@ Mean(Base)     = 15.33
 Mean(Extended) = 15.26
 ```
 
-* Statistically significant but small magnitude difference (~25 days).
 
 ## <span style="color:#1E4D2B;">Longevity Distribution Plot</span>
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=3.5, fig.width=8}
 ggplot(results, aes(x = long_years, fill = scenario)) +
   geom_density(alpha = 0.6) +
   scale_fill_manual(values = c(csu_green, csu_gold)) +
@@ -143,9 +152,9 @@ ggplot(results, aes(x = long_years, fill = scenario)) +
     axis.title = element_text(color = csu_green)
   )
 ```
-
-* Strong overlap → impedance variability has small effect.
-* Extended scenario shifts slightly left → minor longevity reduction.
+  
+  - Strong overlap → impedance variability has small effect.
+  - Extended scenario shifts slightly left → minor longevity reduction.
 
 ## <span style="color:#1E4D2B;">Discussion</span>
 
