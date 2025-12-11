@@ -73,31 +73,44 @@ Where:
 ```{r}
 
 #Pacing Current Function
-p_current <- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
-  pw_sec <- pw_ms / 1000
+p_current <- function(v, pw_ms, r_ohm, hr = 60, 
+                      pace_fraction = 0.3){
+  # Convert Pulse width to seconds
+  pw_sec  <- pw_ms / 1000
+  
+  # Current during pulse
   i_pulse <- v / r_ohm
-  q <- i_pulse * pw_sec
+  
+  # Charge per pulse in Coulombs
+  q       <- i_pulse * pw_sec
+  
+  # Convert to microcoulombs
   q_micro <- q * 1e6
   
-  i_avg_microamps <- (q_micro * hr * pace_fraction) / 60
+  # Average current over 1 minute
+  i_avg_microamps <- (q_micro * hr * pace_fraction)/60
   return(i_avg_microamps)
 }
 
 #PCI + Longevity Function
-long <- function(i_background, i_pacing, i_options, c_mah){
-  c_uah <- c_mah * 1e3
-  i_total <- i_background + i_pacing + i_options
-  
-  PCI <- i_total / c_uah
+long <- function(i_background, i_pacing, 
+                 i_options, c_mah){
+  # Convert battery capacity from mAh to µAh
+  c_uah      <- c_mah * 1000
+  # Total current in µA
+  i_total    <- i_background + i_pacing + 
+    i_options
+  # Power Consumption Index (PCI)
+  PCI        <- i_total / c_uah
+  # Longevity in hours
   long_hours <- 1 / PCI
-  long_years <- long_hours / 8760
-  
+  # Longevity in years
+  long_hours / 8760
   return(list(
     i_total = i_total,
     PCI = PCI,
-    years = long_years
-  ))
-}
+    years = long_years))
+  }
 
 ```
 
@@ -152,12 +165,10 @@ sim_base <- sim_data %>%
   mutate(
     impedance = 500,
     i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
-    
     i_total = i_background + i_pacing + i_options,
     PCI = i_total / (c_mah * 1000),
     long_years = 1 / PCI / 8760,
-    
-    scenario = "Base (SD=0Ω)"
+    scenario = "Base (500 Ohms)"
   )
 
 ```
@@ -172,12 +183,10 @@ sim_extended <- sim_data %>%
   mutate(
     impedance = pmax(rnorm(n_patients, 500, 100), 200),
     i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
-    
     i_total = i_background + i_pacing + i_options,
     PCI = i_total / (c_mah * 1000),
     long_years = 1 / PCI / 8760,
-    
-    scenario = "Extended (SD=100Ω)"
+    scenario = "Extended (500 Ohms ± 100 Ohms)"
   )
 
 ```
@@ -191,7 +200,6 @@ results <- bind_rows(
   select(sim_extended, id, condition, long_years, scenario)
 )
 
-# Summary table
 summary_tbl <- results %>%
   group_by(scenario) %>%
   summarise(
@@ -203,21 +211,36 @@ summary_tbl <- results %>%
     n = n()
   )
 
-kable(summary_tbl, digits = 2)
+# Summary table
+summary_display <- summary_tbl %>%
+  mutate(
+    n = format(n, big.mark = ",", scientific = FALSE)  
+  ) %>%
+  rename(
+    Scenario = scenario,
+    Mean = mean_years,
+    Median = median_years,
+    SD = sd_years,
+    Q1 = q1,
+    Q3 = q3,
+    N = n
+  )
 
-
+kable(summary_display, 
+      digits = 2,
+      align = c('l', rep('c', 6)))
 
 ```
 
 #### 5) Statistical test (t-test) to confirm significance
 
 ```{r}
-t_test <- t.test(
-  filter(results, scenario == "Base (SD=0Ω)")$long_years,
-  filter(results, scenario == "Extended (SD=100Ω)")$long_years
+t_test_result <- t.test(
+  filter(results, scenario == "Base (500 Ohms)")$long_years,
+  filter(results, scenario == "Extended (500 Ohms ± 100 Ohms)")$long_years
 )
 
-print(t_test)
+print(t_test_result)
 
 ```
 
@@ -227,15 +250,20 @@ print(t_test)
 ```{r}
 
 ggplot(results, aes(x = long_years, fill = scenario)) +
-  geom_density(alpha = 0.4) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c("blue", "gold")) +
   labs(
-    title = "CIED Longevity: Base vs Extended Impedance Variability",
-    subtitle = paste("Base: fixed 500Ω | Extended: N(500, 100)Ω | n =", n_patients),
+    title = "CIED Longevity: Base vs Extended Impedance",
     x = "Longevity (years)",
     y = "Density",
     fill = "Scenario"
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(color = "darkblue", face = "bold"),
+    plot.subtitle = element_text(color = "gray40", size = 12),
+    axis.title = element_text(color = "black")
+  )
 
 ```
 

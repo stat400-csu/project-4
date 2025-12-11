@@ -10,19 +10,91 @@ output:
   slidy_presentation: default
 ---
 
-```{r setup, include=FALSE}
-library(ggplot2)
 
-# Demo dataset for plot
-set.seed(1)
-n_per_group <- 50000
-results <- data.frame(
-  long_years = c(
-    rnorm(n_per_group, mean = 15.33, sd = 2.31),
-    rnorm(n_per_group, mean = 15.26, sd = 2.37)
-  ),
-  scenario = factor(rep(c("Base (500 Ohms)", "Extended (500 Ohms ± 100 Ohms)"), each = n_per_group))
+```{r setup, include=FALSE}
+library(tidyverse)     
+library(ggplot2)
+library(knitr)         
+
+set.seed(400) 
+
+n_patients <- 100000
+
+condition <- sample(c("SND", "AVB"), n_patients, replace = TRUE, prob = c(0.6, 0.4))
+hr <- pmin(pmax(rnorm(n_patients, 60, 5), 40), 90)
+
+ventricular_pacing <- ifelse(condition == "SND",
+                            rnorm(n_patients, 0.29, 0.08),
+                            rnorm(n_patients, 0.90, 0.05))
+ventricular_pacing <- pmin(pmax(ventricular_pacing, 0), 1)
+
+c_mah <- pmax(rnorm(n_patients, 1000, 80), 800)
+i_background <- pmax(rnorm(n_patients, 6.5, 0.7), 4)
+i_options <- rep(0, n_patients)
+
+sim_data <- tibble(
+  id = 1:n_patients,
+  condition,
+  hr,
+  ventricular_pacing,
+  c_mah,
+  i_background,
+  i_options
 )
+
+p_current <- function(v, pw_ms, r_ohm, hr = 60, pace_fraction = 0.3){
+  pw_sec <- pw_ms / 1000
+  i_pulse <- v / r_ohm
+  q <- i_pulse * pw_sec
+  q_micro <- q * 1e6
+  i_avg_microamps <- (q_micro * hr * pace_fraction) / 60
+  return(i_avg_microamps)
+}
+
+sim_base <- sim_data %>%
+  mutate(
+    impedance = 500,
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    scenario = "Base (500 Ohms)"
+  )
+
+sim_extended <- sim_data %>%
+  mutate(
+    impedance = pmax(rnorm(n_patients, 500, 100), 200),
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    scenario = "Extended (500 Ohms ± 100 Ohms)"
+  )
+
+results <- bind_rows(
+  select(sim_base, id, condition, long_years, scenario),
+  select(sim_extended, id, condition, long_years, scenario)
+)
+
+summary_tbl <- results %>%
+  group_by(scenario) %>%
+  summarise(
+    mean_years = mean(long_years),
+    median_years = median(long_years),
+    sd_years = sd(long_years),
+    q1 = quantile(long_years, 0.25),
+    q3 = quantile(long_years, 0.75),
+    n = n()
+  )
+
+t_test_result <- t.test(
+  filter(results, scenario == "Base (500 Ohms)")$long_years,
+  filter(results, scenario == "Extended (500 Ohms ± 100 Ohms)")$long_years
+)
+
+mean_diff <- summary_tbl$mean_years[1] - summary_tbl$mean_years[2]
+days_diff <- round(mean_diff * 365)
+
 ```
 
 ## Motivation 
@@ -44,10 +116,10 @@ results <- data.frame(
 
 * Two impedance conditions:
 
-  * **Base:** fixed at 500 Ohms
+  * **Base:** fixed at 500 Ohms *(following Defaye et al., 2025)*
 
-  * **Extended:** N(500 Ohms, SD = 100 Ohms)
-
+  * **Extended:** N(500 Ohms, SD = 100 Ohms) *(our extension)*
+  
 * Purpose: isolate the effect of impedance variability.
 
 ## Problem Statement & Methodology 
@@ -132,26 +204,40 @@ long <- function(i_background, i_pacing,
 
 ## Longevity Summary Table 
 
-| Scenario             | Mean  | Median | SD   | Q1    | Q3    | n       |
-| -------------------- | ----- | ------ | ---- | ----- | ----- | ------- |
-| Base (500 Ohms)      | 15.33 | 15.12  | 2.31 | 13.68 | 16.76 | 100,000 |
-| Extended (±100 Ohms) | 15.26 | 15.08  | 2.37 | 13.58 | 16.73 | 100,000 |
+```{r, echo=FALSE}
+summary_display <- summary_tbl %>%
+  mutate(
+    n = format(n, big.mark = ",", scientific = FALSE)  
+  ) %>%
+  rename(
+    Scenario = scenario,
+    Mean = mean_years,
+    Median = median_years,
+    SD = sd_years,
+    Q1 = q1,
+    Q3 = q3,
+    N = n
+  )
 
+kable(summary_display, 
+      digits = 2,
+      align = c('l', rep('c', 6)))
+```
 
 * Longevity slightly lower under impedance variability.
 * Differences are small. 
 
 ## T-Test Results 
 
-```
-Welch Two Sample t-test
+```{r, echo=FALSE}
+cat("Welch Two Sample t-test\n\n")
+cat("t =", round(t_test_result$statistic, 2), "\n")
+cat("p-value =", format(t_test_result$p.value, scientific = TRUE, digits = 2), "\n\n")
+cat("95% CI:", round(t_test_result$conf.int[1], 3), "to", round(t_test_result$conf.int[2], 3), "years\n")
+cat("Mean(Base)     =", round(t_test_result$estimate[1], 2), "\n")
+cat("Mean(Extended) =", round(t_test_result$estimate[2], 2), "\n")
+cat("\nStatistical significance due to large n (", format(n_patients, big.mark = ",", scientific = FALSE), ")", sep = "")
 
-t = 6.61
-p-value = 3.76e-11
-
-95% CI: 0.049 to 0.090 years
-Mean(Base)     = 15.33
-Mean(Extended) = 15.26
 ```
 
 
@@ -169,13 +255,15 @@ ggplot(results, aes(x = long_years, fill = scenario)) +
   ) +
   theme_minimal(base_size = 16) +
   theme(
-    plot.title = element_text(color = "darkblue", face="bold"),
+    plot.title = element_text(color = "darkblue", face = "bold"),
+    plot.subtitle = element_text(color = "gray40", size = 12),
     axis.title = element_text(color = "black")
   )
+
 ```
   
   - Strong overlap → impedance variability has small effect.
-  - Near-identical distributions → minimal practical difference.
+  - Statistical significance (p < 0.001) reflects 0.07 year mean difference.
   - Slight separation aligns with statistical findings.
   - Same distribution shape → consistent prediction patterns.
 
@@ -184,7 +272,7 @@ ggplot(results, aes(x = long_years, fill = scenario)) +
 ## Discussion 
 
 * Background/system current has strongest influence on longevity.
-* Impedance variability causes small, predictable changes.
+* Impedance variability causes small, statistically detectable but clinically minimal changes (~25 days over 15+ years).
 * Pacing burden + background current dominate longevity outcomes.
 
 ## Limitations & Future Work 
