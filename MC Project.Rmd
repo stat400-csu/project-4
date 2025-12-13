@@ -174,7 +174,7 @@ sim_base <- sim_data %>%
 ```
 
 
-#### 3) Extended scenario (variable lead impedance)
+#### 3.1) Extended scenario (variable lead impedance)
 
 
 ```{r}
@@ -191,14 +191,40 @@ sim_extended <- sim_data %>%
 
 ```
 
+
+#### 3.2) 1000Ω scenario
+
+
+```{r}
+# 1000Ω scenario
+sim_high_imp <- sim_data %>%
+  mutate(
+    impedance = 1000,
+    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    i_total = i_background + i_pacing + i_options,
+    PCI = i_total / (c_mah * 1000),
+    long_years = 1 / PCI / 8760,
+    scenario = "High (1000 Ohms)"
+  )
+```
+
+
 #### 4) Summarize longevity distributions (table)
 
 ```{r}
 
 results <- bind_rows(
   select(sim_base, id, condition, long_years, scenario),
-  select(sim_extended, id, condition, long_years, scenario)
+  select(sim_extended, id, condition, long_years, scenario),
+  select(sim_high_imp, id, condition, long_years, scenario)
+
 )
+
+results$scenario <- factor(results$scenario,
+  levels = c("Base (500 Ohms)", 
+             "Extended (500 Ohms ± 100 Ohms)", 
+             "High (1000 Ohms)"))
+
 
 summary_tbl <- results %>%
   group_by(scenario) %>%
@@ -240,7 +266,14 @@ t_test_result <- t.test(
   filter(results, scenario == "Extended (500 Ohms ± 100 Ohms)")$long_years
 )
 
+t_test_high <- t.test(
+  filter(results, scenario == "Base (500 Ohms)")$long_years,
+  filter(results, scenario == "High (1000 Ohms)")$long_years
+)
+
+
 print(t_test_result)
+print(t_test_high)
 
 ```
 
@@ -250,10 +283,12 @@ print(t_test_result)
 ```{r}
 
 ggplot(results, aes(x = long_years, fill = scenario)) +
-  geom_density(alpha = 0.6) +
-  scale_fill_manual(values = c("blue", "gold")) +
+  geom_density(alpha = 0.5) +
+  scale_fill_manual(values = c("#3F51B5", "#FF9800", "#388E3C")) +
   labs(
-    title = "CIED Longevity: Base vs Extended Impedance",
+    title = "CIED Longevity: Effect of Impedance on Battery Life",
+    subtitle = paste("Higher impedance (1000Ω) shows clinically meaningful increase",
+                     "\nNormal variability (±100Ω) has minimal practical effect"),
     x = "Longevity (years)",
     y = "Density",
     fill = "Scenario"
@@ -261,7 +296,7 @@ ggplot(results, aes(x = long_years, fill = scenario)) +
   theme_minimal(base_size = 16) +
   theme(
     plot.title = element_text(color = "darkblue", face = "bold"),
-    plot.subtitle = element_text(color = "gray40", size = 12),
+    plot.subtitle = element_text(color = "gray40", size = 11),
     axis.title = element_text(color = "black")
   )
 
