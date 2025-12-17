@@ -429,45 +429,6 @@ find the longevity in hours by dividing one by the PCI. Finally we
 divide the longevity in hours by 8760 to get the longevity in years.
 After getting that we then return a list of total current, PCI, and
 longevity in years.</p>
-<pre class="r"><code>#Pacing Current Function
-i_pacing &lt;- function(v, pw_ms, r_ohm, hr = 60, 
-                      pace_fraction = 0.3){
-  # Convert Pulse width to seconds
-  pw_sec  &lt;- pw_ms / 1000
-  
-  # Current during pulse
-  i_pulse &lt;- v / r_ohm
-  
-  # Charge per pulse in Coulombs
-  q       &lt;- i_pulse * pw_sec
-  
-  # Convert to microcoulombs
-  q_micro &lt;- q * 1e6
-  
-  # Average current over 1 minute
-  i_avg_microamps &lt;- (q_micro * hr * pace_fraction)/60
-  return(i_avg_microamps)
-}
-
-#PCI + Longevity Function
-long &lt;- function(i_background, i_pacing, 
-                 i_options, c_mah){
-  # Convert battery capacity from mAh to µAh
-  c_uah      &lt;- c_mah * 1000
-  # Total current in µA
-  i_total    &lt;- i_background + i_pacing + 
-    i_options
-  # Power Consumption Index (PCI)
-  PCI        &lt;- i_total / c_uah
-  # Longevity in hours
-  long_hours &lt;- 1 / PCI
-  # Longevity in years
-  long_hours / 8760
-  return(list(
-    i_total = i_total,
-    PCI = PCI,
-    years = long_years))
-  }</code></pre>
 </div>
 <div id="monte-carlo-simulation-implementation" class="section level3">
 <h3>Monte Carlo Simulation Implementation</h3>

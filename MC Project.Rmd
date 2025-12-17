@@ -78,7 +78,7 @@ To recreate the PCI Model we will need to create the pacing current function and
 
 After creating the pacing current function, we then need to create the longevity function. We will take the input: the background current, the pacing current from our last function, the options current, and the capacity of the battery in milliampere-hour. First we will need to convert the battery capacity from milliampere-hour to microampere-hour. From there we then find the total current by adding background current, pacing current and option current. Then we get the PCI dividing the total current by the battery capacity. After getting the PCI we then find the longevity in hours by dividing one by the PCI. Finally we divide the longevity in hours by 8760 to get the longevity in years. After getting that we then return a list of total current, PCI, and longevity in years.
 
-```{r}
+```{r, echo=FALSE}
 
 #Pacing Current Function
 i_pacing <- function(v, pw_ms, r_ohm, hr = 60, 
