@@ -64,8 +64,7 @@ Where:
 - Used single impedance value (not manufacturer-specific)
 
 **Rationale:** Isolate effect of impedance variability while maintaining model essence
-
-**Comparison:** Base (500Ω fixed) vs Extended (N(500,100)Ω)
+**Comparison:** Base (500Ω fixed) vs Extended (N(500,100)Ω) vs High-impedance scenario (1000Ω fixed)
 
 
 ### PCI MODEL
