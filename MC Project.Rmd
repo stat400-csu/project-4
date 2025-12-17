@@ -6,7 +6,6 @@ output:
   html_document: default
 header-includes:
   - \usepackage{float}  
-
 ---
 
 
@@ -75,10 +74,14 @@ Where:
 
 ### PCI Model
 
-```{r echo=FALSE}
+To recreate the PCI Model we will need to create the pacing current function and the longevity function. For the pacing current function, we will take the input: voltage, pulse in millisecond, the resistant in ohms, hours, and the pacing fraction. To start the function, we will convert the pulse from millisecond to seconds. Then find the current during the pulse and convert it into coulombs. After that we then find the average current over one minute and return it.
+
+After creating the pacing current function, we then need to create the longevity function. We will take the input: the background current, the pacing current from our last function, the options current, and the capacity of the battery in milliampere-hour. First we will need to convert the battery capacity from milliampere-hour to microampere-hour. From there we then find the total current by adding background current, pacing current and option current. Then we get the PCI dividing the total current by the battery capacity. After getting the PCI we then find the longevity in hours by dividing one by the PCI. Finally we divide the longevity in hours by 8760 to get the longevity in years. After getting that we then return a list of total current, PCI, and longevity in years.
+
+```{r}
 
 #Pacing Current Function
-p_current <- function(v, pw_ms, r_ohm, hr = 60, 
+i_pacing <- function(v, pw_ms, r_ohm, hr = 60, 
                       pace_fraction = 0.3){
   # Convert Pulse width to seconds
   pw_sec  <- pw_ms / 1000
@@ -110,7 +113,7 @@ long <- function(i_background, i_pacing,
   # Longevity in hours
   long_hours <- 1 / PCI
   # Longevity in years
-  long_hours / 8760
+  long_years <- long_hours / 8760
   return(list(
     i_total = i_total,
     PCI = PCI,
@@ -180,7 +183,7 @@ sim_data <- tibble(
 sim_base <- sim_data %>%
   mutate(
     impedance = 500,
-    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    i_pacing = i_pacing(2.5, 0.4, impedance, hr, ventricular_pacing),
     i_total = i_background + i_pacing + i_options,
     PCI = i_total / (c_mah * 1000),
     long_years = 1 / PCI / 8760,
@@ -197,7 +200,7 @@ sim_base <- sim_data %>%
 sim_extended <- sim_data %>%
   mutate(
     impedance = pmax(rnorm(n_patients, 500, 100), 200),
-    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    i_pacing = i_pacing(2.5, 0.4, impedance, hr, ventricular_pacing),
     i_total = i_background + i_pacing + i_options,
     PCI = i_total / (c_mah * 1000),
     long_years = 1 / PCI / 8760,
@@ -214,7 +217,7 @@ sim_extended <- sim_data %>%
 sim_high_imp <- sim_data %>%
   mutate(
     impedance = 1000,
-    i_pacing = p_current(2.5, 0.4, impedance, hr, ventricular_pacing),
+    i_pacing = i_pacing(2.5, 0.4, impedance, hr, ventricular_pacing),
     i_total = i_background + i_pacing + i_options,
     PCI = i_total / (c_mah * 1000),
     long_years = 1 / PCI / 8760,
