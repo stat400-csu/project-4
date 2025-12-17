@@ -70,7 +70,7 @@ Where:
 
 **Rationale:** Isolate effect of impedance variability while maintaining model essence
 
-**Comparison:** Base (500 Ohms fixed) vs Extended (N(500,100) Ohms)
+**Comparison:** Base (500 Ohms fixed) vs Extended (N(500,100) Ohms) vs High-impedance scenario (1000 Ohms fixed)
 
 
 ### PCI Model
@@ -342,6 +342,7 @@ ggplot(results, aes(x = long_years, fill = scenario)) +
 
 
 ```
+
 The density plot confirms the statistical findings. The high-impedance (1000 Ohms) distribution is clearly shifted to the right, indicating increased device lifespan. The base and extended scenarios show considerable overlap, reflecting the minimal practical impact of normal physiological impedance variability (±100 Ohms).
 
 
@@ -353,21 +354,28 @@ The goal of our project was to recreate the central modeling approach described 
 Overall, we observed the following points that aligned with the original study:
 
 #### 1. The background current dominates the total power consumption
-In our simulation, patients with low pacing percentages had longevity largely determined by background current. In the original study, the majority of the PCI is driven by the background current, so our recreation aligned with this.
+In our simulation, patients with low pacing percentages had longevity largely determined by background current. Across all scenarios, the mean background current was approximately 6.5 µA, while mean pacing-related current ranged from ~1.5 to 2.5 µA depending on pacing burden and impedance. Consequently, background current accounted for approximately 70–80% of the total current drain in the majority of simulated patients. As a result, variations in pacing parameters had a limited impact on longevity when background current remained constant. In the original study, the majority of the PCI is driven by the background current, so our recreation aligned closely with this finding.
 
 #### 2. The pacing burden substantially influences longevity
-Our simulation shows that higher ventricular pacing percentages had higher total current and lower projected longevity. This aligns with the original study, where pacing current was the second-largest contributor to power consumption. 
+Our simulation shows that higher ventricular pacing percentages had higher total current and lower projected longevity. When grouping patients by condition, those with AV block (AVB) (mean ventricular pacing ~90%) exhibited a mean projected longevity that was approximately 2–3 years shorter than patients with sinus node dysfunction (SND) (mean ventricular pacing ~30%), under otherwise similar device parameters. This aligns with the original study, where pacing current was the second-largest contributor to power consumption. 
 
 #### 3. The battery capacity alone cannot predict longevity
-Devices with higher battery capacity generally exhibited longer simulated service life. However, total current from background and pacing influences longevity as well, so battery size alone does not fully determine expected device lifespan, which aligns with the original study's findings.
+Devices with higher battery capacity generally exhibited longer simulated service life. However, battery capacity alone did not uniquely determine longevity. In the simulated population, patients with similar battery capacities (e.g., ~1000 Ah) demonstrated multi-year differences in projected longevity driven by differences in total current drain from background and pacing components. This demonstrates that battery size alone does not fully determine expected device lifespan, consistent with the findings of the original study.
 
 #### 4. Lead impedance variability impacts longevity
-When simulating variable lead impedance (Extended scenario), mean device longevity slightly decreased compared to the base scenario (fixed impedance). A t-test confirmed that the difference in mean longevity was statistically significant, demonstrating that lead characteristics can meaningfully affect outcomes in terms of longevity. 
+When simulating variable lead impedance (Extended scenario), mean device longevity slightly decreased compared to the base scenario. The absolute difference in mean longevity was approximately 0.07 years (~26 days) A t-test confirmed that the difference in mean longevity was statistically significant (p < 10^(-10)), demonstrating that lead characteristics can meaningfully affect outcomes in terms of longevity. In addition, increasing lead impedance to 1000 Ohms resulted in a substantial shift in projected longevity, with a mean increase of approximately 1.1 years compared with the base scenario. This effect was highly statistically significant (p < 2 × 10^(-16)). This effect represents a clinically meaningful improvement in device longevity.
 
 
 ### CONCLUSION
 
-Our Monte Carlo model successfully recreated key elements of the PCI-based longevity estimation introduced by Defaye et al. (2025). Despite using fewer device-specific parameters and a simplified representation of programming options, our simulated findings closely reflected the patterns reported in the original study. These findings reinforce the use of the PCI as a standardized and adaptable framework for understanding and comparing device life under varying patient and device conditions.
+Our Monte Carlo model successfully recreated key elements of the PCI-based longevity estimation introduced by Defaye et al. (2025) while extending the original framework to examine the impact of lead impedance magnitude. Despite using fewer device-specific parameters and a simplified representation of programming options, our simulated findings closely reflected the patterns reported in the original study. 
+While the addition of our extended scenario ((N(500,100)Ohms) provided some meaningful difference, the addition of a high-impedance (1000 Ohms) scenario provided an important extension to the existing model. While normal physiological variability in impedance produced some differences in longevity, higher impedance values resulted in a pronounced increase in projected device life. This finding reinforces the relevance of lead design choices in addition to programming and battery characteristics.
+
+These findings reinforce the use of the PCI as a standardized and adaptable framework for understanding and comparing device life under varying patient and device conditions.
 
 The alignment of our simulation and the published results support the idea that even approximate PCI-based modeling can produce meaningful insights into device longevity. As in the original study, our results highlight meaningful practical implications. Even in a simplified form, our recreation demonstrates the impact and accuracy of the PCI model and shows the value it brings to real-world scenarios. 
+
+### REFERENCES 
+
+Defaye, P., Boveda, S., Billuart, J.-R., Witte, K. K., & Paton, M. F. (2025). Cardiac implantable electronic devices’ longevity: A novel modelling tool for estimation and comparison. PLOS ONE, 20(9), e0333195. https://doi.org/10.1371/journal.pone.0333195
 
