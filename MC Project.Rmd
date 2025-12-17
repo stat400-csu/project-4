@@ -1,7 +1,12 @@
 ---
 title: 'STAT 400 | Group 4 | Monte Carlo Simulation: CIED Longevity'
+author: "Sydney Coughlan, James Ho, Waddah Alqahtani"
 output:
+  pdf_document: default
   html_document: default
+header-includes:
+  - \usepackage{float}  
+
 ---
 
 
@@ -65,12 +70,12 @@ Where:
 
 **Rationale:** Isolate effect of impedance variability while maintaining model essence
 
-**Comparison:** Base (500Ω fixed) vs Extended (N(500,100)Ω)
+**Comparison:** Base (500 Ohms fixed) vs Extended (N(500,100) Ohms)
 
 
-### PCI MODEL
+### PCI Model
 
-```{r}
+```{r echo=FALSE}
 
 #Pacing Current Function
 p_current <- function(v, pw_ms, r_ohm, hr = 60, 
@@ -116,11 +121,22 @@ long <- function(i_background, i_pacing,
 
 
 
-### MC SIMULATION
+
+### Monte Carlo Simulation Implementation
+
+This section outlines the step-by-step computational process used to generate and analyze the virtual patient cohort. Patient-specific parameters were randomly sampled from defined distributions: condition (SND or AVB), heart rate (normally distributed with mean 60 bpm, SD 5 bpm), and ventricular pacing percentage (condition-dependent normal distributions). Device parameters included battery capacity and background current, both sampled from normal distributions with clinically plausible bounds. The simulation then calculated pacing current using a derived function incorporating voltage, pulse width, impedance, heart rate, and pacing fraction. Total current, PCI, and device longevity were computed for each patient across all three impedance scenarios. This systematic approach ensures transparency and reproducibility of the simulation methodology.
+
+#### Results
+
+* **Simulation Summary**
+
+The Monte Carlo simulation generated longevity predictions for 100,000 virtual patients across three distinct impedance scenarios. Patient characteristics and device parameters were randomly sampled from clinically plausible distributions. Patients were assigned either sinus node dysfunction (SND, 60%) or atrioventricular block (AVB, 40%) conditions, with corresponding ventricular pacing percentages of 29% (±8%) for SND and 90% (±5%) for AVB. Device parameters included battery capacity (mean 1000 mAh, SD 80 mAh) and background current (mean 6.5 µA, SD 0.7 µA).
+
+
+```{r echo=FALSE}
 
 #### 1) Simulation
 
-```{r}
 set.seed(400)
 n_patients <- 100000
 
@@ -156,10 +172,10 @@ sim_data <- tibble(
 ```
 
 
-#### 2) Base scenario (fixed impedance = 500Ω)
+```{r echo=FALSE}
 
+#### 2) Base scenario (fixed impedance = 500 Ohms)
 
-```{r}
 
 sim_base <- sim_data %>%
   mutate(
@@ -174,10 +190,9 @@ sim_base <- sim_data %>%
 ```
 
 
+```{r echo=FALSE}
+
 #### 3.1) Extended scenario (variable lead impedance)
-
-
-```{r}
 
 sim_extended <- sim_data %>%
   mutate(
@@ -192,11 +207,10 @@ sim_extended <- sim_data %>%
 ```
 
 
-#### 3.2) 1000Ω scenario
+```{r echo=FALSE}
 
+#### 3.2) 1000 Ohms scenario
 
-```{r}
-# 1000Ω scenario
 sim_high_imp <- sim_data %>%
   mutate(
     impedance = 1000,
@@ -209,9 +223,16 @@ sim_high_imp <- sim_data %>%
 ```
 
 
-#### 4) Summarize longevity distributions (table)
+* **Longevity by Impedance Scenario**
 
-```{r}
+*Table 1* presents the descriptive statistics for device longevity under each impedance condition. The high-impedance scenario (1000 Ohms) showed the longest mean longevity at 16.43 years, followed by the base scenario (500 Ohms) at 15.33 years, and the extended scenario (500 ± 100 Ohms) at 15.26 years.
+
+
+
+
+```{r echo=FALSE}
+
+#### 4) Summarize longevity distributions (table)
 
 results <- bind_rows(
   select(sim_base, id, condition, long_years, scenario),
@@ -258,9 +279,16 @@ kable(summary_display,
 
 ```
 
+
+* **Statistical Comparisons**
+
+Welch two-sample t-tests were conducted to compare longevity between the base scenario and each alternative scenario:
+
+
+```{r echo=FALSE}
+
 #### 5) Statistical test (t-test) to confirm significance
 
-```{r}
 t_test_result <- t.test(
   filter(results, scenario == "Base (500 Ohms)")$long_years,
   filter(results, scenario == "Extended (500 Ohms ± 100 Ohms)")$long_years
@@ -271,36 +299,51 @@ t_test_high <- t.test(
   filter(results, scenario == "High (1000 Ohms)")$long_years
 )
 
+cat("**T-test Results:**\n\n")
+cat("Base vs Extended (±100 Ohms):\n")
+cat(sprintf("  t(%.0f) = %.2f, p = %.2e\n", 
+            t_test_result$parameter, t_test_result$statistic, t_test_result$p.value))
+cat(sprintf("  Mean difference = %.3f years\n\n", diff(t_test_result$estimate)))
 
-print(t_test_result)
-print(t_test_high)
-
+cat("Base vs High (1000 Ohms):\n")
+cat(sprintf("  t(%.0f) = %.2f, p < 2.2e-16\n", 
+            t_test_high$parameter, t_test_high$statistic))
+cat(sprintf("  Mean difference = %.3f years", diff(t_test_high$estimate)))
 ```
 
+Both comparisons were statistically significant (p < 0.001). The difference between the base and extended scenarios, though significant, represents a minimal practical effect. In contrast, the high-impedance scenario showed a substantial and clinically meaningful increase in predicted longevity.
+
+
+* **Visual Distribution**
+*Figure 1* illustrates the density distributions of predicted longevity across the three impedance scenarios.
+
+
+```{r echo=FALSE, fig.align='left', out.width='80%', fig.pos='H'}
 
 #### 6) Plot longevity distributions 
-
-```{r}
 
 ggplot(results, aes(x = long_years, fill = scenario)) +
   geom_density(alpha = 0.5) +
   scale_fill_manual(values = c("#3F51B5", "#FF9800", "#388E3C")) +
   labs(
-    title = "CIED Longevity: Effect of Impedance on Battery Life",
-    subtitle = paste("Higher impedance (1000Ω) shows clinically meaningful increase",
-                     "\nNormal variability (±100Ω) has minimal practical effect"),
+    title = "CIED LONGEVITY: IMPEDANCE EFFECT",
     x = "Longevity (years)",
-    y = "Density",
-    fill = "Scenario"
+    y = "Density"
   ) +
-  theme_minimal(base_size = 16) +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.title = element_text(color = "darkblue", face = "bold"),
-    plot.subtitle = element_text(color = "gray40", size = 11),
-    axis.title = element_text(color = "black")
-  )
+    plot.title = element_text(size = 14, face = "bold.italic", hjust = 0.5,
+                              margin = margin(b = 15)),  # BOLD.ITALIC
+    legend.position = "bottom",
+    legend.text = element_text(size = 9),
+    plot.margin = margin(15, 15, 10, 15)
+  ) +
+  guides(fill = guide_legend(nrow = 1, title = NULL))
+
 
 ```
+The density plot confirms the statistical findings. The high-impedance (1000 Ohms) distribution is clearly shifted to the right, indicating increased device lifespan. The base and extended scenarios show considerable overlap, reflecting the minimal practical impact of normal physiological impedance variability (±100 Ohms).
+
 
 
 ### DISCUSSION  
